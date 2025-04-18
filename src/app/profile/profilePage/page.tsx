@@ -52,6 +52,8 @@ export default function SignUp() {
     setIsLoading(true);
     setError("");
 
+   
+
     if (formData.password !== formData.confirmPassword) {
       setError("Passwords do not match");
       setIsLoading(false);
@@ -59,6 +61,8 @@ export default function SignUp() {
     }
 
     try {
+      // Store the username in localStorage
+      localStorage.setItem('username', formData.username);
       await new Promise(resolve => setTimeout(resolve, 1500));
       router.push("/dashboard");
     } catch (err) {
@@ -67,6 +71,12 @@ export default function SignUp() {
       setIsLoading(false);
     }
   };
+
+  if(formData.username == 'username' ){
+    setError("This username is popular Impersonation is not allowed");
+    setIsLoading(false);
+    return;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-red-900 to-pink-800 py-6 flex flex-col justify-center sm:py-12">
@@ -201,6 +211,7 @@ export default function SignUp() {
     </div>
   );
 }
+
 
 
 
