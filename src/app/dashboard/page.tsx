@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from 'next/navigation';
 import InputGenre from "@/components/InputGenre";
 import SearchButton from "@/components/SearchButton";
-import { getRecentlyPlayed, getTopArtists, getRecommendedTracks } from '@/services/api';
+import { getRecentlyPlayed, getFeaturedPlaylists, getTopArtists, getRecommendedTracks } from '@/services/api';
 import RandomWord from "@/components/RandomWord";
 import Image from 'next/image';
 
@@ -14,19 +14,28 @@ const mockRecentlyPlayed = [
     id: "1",
     name: "Mock Track 1",
     artists: [{ name: "Mock Artist 1" }],
-    album: { name: "Mock Album 1" }
+    album: { 
+      name: "Mock Album 1",
+      images: [{ url: "https://via.placeholder.com/300", width: 300, height: 300 }]
+    }
   },
   {
     id: "2",
     name: "Mock Track 2",
     artists: [{ name: "Mock Artist 2" }],
-    album: { name: "Mock Album 2" }
+    album: { 
+      name: "Mock Album 2",
+      images: [{ url: "https://via.placeholder.com/300", width: 300, height: 300 }]
+    }
   },
   {
     id: "3",
     name: "Mock Track 3",
     artists: [{ name: "Mock Artist 3" }],
-    album: { name: "Mock Album 3" }
+    album: { 
+      name: "Mock Album 3",
+      images: [{ url: "https://via.placeholder.com/00", width: 300, height: 300 }]
+    }
   }
 ];
 
@@ -34,22 +43,30 @@ const mockTopArtists = [
   {
     id: "1",
     name: "Mock Artist 1",
-    followers: { total: 1000000 }
+    followers: { total: 1000000 },
+    images: [{ url: "https://via.placeholder.com/300", width: 300, height: 300 }],
+    genres: ["pop"]
   },
   {
     id: "2",
     name: "Mock Artist 2",
-    followers: { total: 2000000 }
+    followers: { total: 2000000 },
+    images: [{ url: "https://via.placeholder.com/300", width: 300, height: 300 }],
+    genres: ["rock"]
   },
   {
     id: "3",
     name: "Mock Artist 3",
-    followers: { total: 3000000 }
+    followers: { total: 3000000 },
+    images: [{ url: "https://via.placeholder.com/300", width: 300, height: 300 }],
+    genres: ["hip-hop"]
   },
   {
     id: "4",
-    name: "Mock Artist 3",
-    followers: { total: 5000000 }
+    name: "Mock Artist 4",
+    followers: { total: 5000000 },
+    images: [{ url: "https://via.placeholder.com/300", width: 300, height: 300 }],
+    genres: ["r&b"]
   }
 ];
 
@@ -58,19 +75,28 @@ const mockRecommended = [
     id: "1",
     name: "Recommended Track 1",
     artists: [{ name: "Recommended Artist 1" }],
-    album: { name: "Recommended Album 1" }
+    album: { 
+      name: "Recommended Album 1",
+      images: [{ url: "https://via.placeholder.com/300", width: 300, height: 300 }]
+    }
   },
   {
     id: "2",
     name: "Recommended Track 2",
     artists: [{ name: "Recommended Artist 2" }],
-    album: { name: "Recommended Album 2" }
+    album: { 
+      name: "Recommended Album 2",
+      images: [{ url: "https://via.placeholder.com/300", width: 300, height: 300 }]
+    }
   },
   {
     id: "3",
     name: "Recommended Track 3",
     artists: [{ name: "Recommended Artist 3" }],
-    album: { name: "Recommended Album 3" }
+    album: { 
+      name: "Recommended Album 3",
+      images: [{ url: "https://via.placeholder.com/300", width: 300, height: 300 }]
+    }
   }
 ];
 
@@ -92,19 +118,31 @@ const mockFeaturedPlaylists = [
   }
 ];
 
+interface Image {
+  url: string;
+  height?: number;
+  width?: number;
+}
+
+interface Album {
+  name: string;
+  images?: Image[];
+}
+
+
 interface Track {
   id: string;
   name: string;
   artists: { name: string }[];
-  album: {
-    name: string;
-  };
+  album: Album;
 }
 
 interface Artist {
   id: string;
   name: string;
   followers: { total: number };
+  images?: Image[];
+  genres?: string[];
 }
 
 interface Playlist {
@@ -112,6 +150,8 @@ interface Playlist {
   name: string;
   tracks: { total: number };
 }
+
+
 
 export default function MusicDashboard() {
   const router = useRouter();
@@ -121,6 +161,7 @@ export default function MusicDashboard() {
   const [recentlyPlayed, setRecentlyPlayed] = useState<Track[]>([]);
   const [topArtists, setTopArtists] = useState<Artist[]>([]);
   const [recommended, setRecommended] = useState<Track[]>([]);
+  const [featuredPlaylists, setFeaturedPlaylists] = useState<Playlist[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [avatar, setAvatar] = useState<string | null>(null);
@@ -149,10 +190,12 @@ export default function MusicDashboard() {
         setIsLoading(true);
         
         // Fetch all data concurrently
-        const [recentlyPlayedData, topArtistsData, recommendedData] = await Promise.all([
+        const [recentlyPlayedData, featuredPlaylistsData, topArtistsData, recommendedData] = await Promise.all([
           getRecentlyPlayed(),
+          getFeaturedPlaylists(),
           getTopArtists(),
           getRecommendedTracks(5)
+          
         ]);
 
         // Transform API data with safety checks
@@ -164,18 +207,28 @@ export default function MusicDashboard() {
                 name: artist?.name || 'Unknown Artist' 
               })) || [{ name: 'Unknown Artist' }],
               album: { 
-                name: track?.album?.name || 'Unknown Album' 
+                name: track?.album?.name || 'Unknown Album',
+                images: track?.album?.images || []
               }
             }))
           : [];
 
-        const transformedTopArtists = topArtistsData?.artists 
+          const transformedFeaturedPlaylists = featuredPlaylistsData?.playlists
+          ? featuredPlaylistsData.playlists.map((playlist: any) => ({
+              id: playlist?.id || 'unknown',
+              name: playlist?.name || 'Unknown Playlist',
+              tracks: {total: playlist?.tracks?.total || "0 songs"}
+          })) : [];
+
+        const transformedTopArtists = topArtistsData?.artists
           ? topArtistsData.artists.map((artist: any) => ({
               id: artist?.id || 'unknown',
               name: artist?.name || 'Unknown Artist',
               followers: { 
                 total: artist?.followers?.total || 0 
-              }
+              },
+              images: artist?.images || [],
+              genres: artist?.genres || []
             }))
           : [];
 
@@ -187,12 +240,14 @@ export default function MusicDashboard() {
                 name: artist?.name || 'Unknown Artist' 
               })) || [{ name: 'Unknown Artist' }],
               album: { 
-                name: track?.album?.name || 'Unknown Album' 
+                name: track?.album?.name || 'Unknown Album',
+                images: track?.album?.images || [] // Make sure to include images
               }
             }))
           : [];
 
         setRecentlyPlayed(transformedRecentlyPlayed.length > 0 ? transformedRecentlyPlayed : mockRecentlyPlayed);
+        setFeaturedPlaylists(transformedFeaturedPlaylists.length > 0 ? transformedFeaturedPlaylists : mockFeaturedPlaylists);
         setTopArtists(transformedTopArtists.length > 0 ? transformedTopArtists : mockTopArtists);
         setRecommended(transformedRecommended.length > 0 ? transformedRecommended : mockRecommended);
       } catch (error) {
@@ -339,10 +394,20 @@ export default function MusicDashboard() {
                 className="bg-white/10 rounded-lg p-3 md:p-4 hover:bg-white/20 transition-colors cursor-pointer"
                 onClick={() => handleTrackPlay(track)}
               >
-                <div className="aspect-square bg-white/5 rounded-md mb-3 flex items-center justify-center">
-                  <svg className="w-8 md:w-12 h-8 md:h-12 text-white/20" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
-                  </svg>
+                <div className="aspect-square bg-white/5 rounded-md mb-3 flex items-center justify-center overflow-hidden">
+                  {track.album?.images?.[0]?.url ? (
+                    <Image
+                      src={track.album.images[0].url}
+                      alt={track.name}
+                      width={300}
+                      height={300}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <svg className="w-8 md:w-12 h-8 md:h-12 text-white/20" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
+                    </svg>
+                  )}
                 </div>
                 <h3 className="text-white font-medium text-sm md:text-base truncate">{track.name}</h3>
                 <p className="text-white/60 text-xs md:text-sm truncate">{track.artists[0].name}</p>
@@ -412,7 +477,7 @@ export default function MusicDashboard() {
           <section className="bg-white/5 rounded-xl p-4 md:p-6">
             <h2 className="text-xl font-semibold text-white mb-4">Featured Playlists</h2>
             <div className="space-y-3">
-              {mockFeaturedPlaylists.map((playlist) => (
+              {featuredPlaylists.map((playlist) => (
                 <div key={playlist.id} className="flex items-center gap-3 hover:bg-white/10 p-2 rounded-lg cursor-pointer">
                   <div className="w-12 h-12 md:w-16 md:h-16 bg-white/10 rounded flex items-center justify-center flex-shrink-0">
                     <svg className="w-6 h-6 md:w-8 md:h-8 text-white/20" fill="currentColor" viewBox="0 0 24 24">
@@ -421,7 +486,7 @@ export default function MusicDashboard() {
                   </div>
                   <div className="min-w-0">
                     <h3 className="text-white font-medium text-sm md:text-base truncate">{playlist.name}</h3>
-                    <p className="text-white/60 text-xs md:text-sm">{playlist.tracks.total} songs</p>
+                    <p className="text-white/60 text-xs md:text-sm">{playlist.tracks.total} tracks</p>
                   </div>
                 </div>
               ))}
@@ -433,15 +498,31 @@ export default function MusicDashboard() {
             <h2 className="text-xl font-semibold text-white mb-4">Top Artists</h2>
             <div className="space-y-4">
               {topArtists.map((artist) => (
-                <div key={artist.id} className="flex items-center gap-4 hover:bg-white/10 p-2 rounded-lg cursor-pointer">
-                  <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center">
-                    <svg className="w-8 h-8 text-white/20" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
-                    </svg>
+                <div 
+                  key={artist.id} 
+                  className="flex items-center gap-4 hover:bg-white/10 p-2 rounded-lg cursor-pointer transition-colors"
+                >
+                  <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center overflow-hidden">
+                    {artist.images?.[0]?.url ? (
+                      <Image
+                        src={artist.images[0].url}
+                        alt={artist.name}
+                        width={64}
+                        height={64}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <svg className="w-8 h-8 text-white/20" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                      </svg>
+                    )}
                   </div>
                   <div>
                     <h3 className="text-white font-medium">{artist.name}</h3>
                     <p className="text-white/60 text-sm">
+                      {artist.genres?.slice(0, 2).join(', ')}
+                    </p>
+                    <p className="text-white/40 text-xs">
                       {(artist.followers.total / 1000000).toFixed(1)}M followers
                     </p>
                   </div>
@@ -454,20 +535,35 @@ export default function MusicDashboard() {
           <section className="bg-white/5 rounded-xl p-6">
             <h2 className="text-xl font-semibold text-white mb-4">Recommended</h2>
             <div className="space-y-4">
-              {recommended.slice(0, 4).map((track) => (
+              {recommended.slice(0, 5).map((track) => (
                 <div 
                   key={track.id} 
-                  onClick={() => handleTrackClick(track)}
-                  className="flex items-center gap-4 hover:bg-white/10 p-2 rounded-lg cursor-pointer"
+                  onClick={() => handleTrackPlay(track)}
+                  className="flex items-center gap-4 hover:bg-white/10 p-2 rounded-lg cursor-pointer transition-colors"
                 >
-                  <div className="w-16 h-16 bg-white/10 rounded flex items-center justify-center">
-                    <svg className="w-8 h-8 text-white/20" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
-                    </svg>
+                  <div className="w-16 h-16 bg-white/10 rounded-md flex items-center justify-center overflow-hidden">
+                    {track.album?.images?.[0]?.url ? (
+                      <Image
+                        src={track.album.images[0].url}
+                        alt={track.name}
+                        width={64}
+                        height={64}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <svg className="w-8 h-8 text-white/20" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
+                      </svg>
+                    )}
                   </div>
-                  <div className="overflow-hidden">
-                    <h3 className="text-white font-medium scrolling-text">{track.name}</h3>
-                    <p className="text-white/60 text-sm">{track.artists[0].name}</p>
+                  <div className="flex-grow">
+                    <h3 className="text-white font-medium truncate">{track.name}</h3>
+                    <p className="text-white/60 text-sm truncate">
+                      {track.artists.map(artist => artist.name).join(', ')}
+                    </p>
+                    <p className="text-white/40 text-xs truncate">
+                      {track.album.name}
+                    </p>
                   </div>
                 </div>
               ))}

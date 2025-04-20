@@ -1,0 +1,52 @@
+{
+  "tracks": {
+    "recentlyPlayed": [
+      {
+        "id": "4WNcduiCmDNfmTEz7JvmLv",
+        "info": "Track 1"
+      },
+      {
+        "id": "4y1LsJpmMti1PfRQV9AWWe",
+        "info": "Track 2"
+      },
+      {
+        "id": "5nTtCOCds6I0PHMNtqelas",
+        "info": "Track 3"
+      }
+    ],
+    "recommended": {
+      "seedTrack": "0c6xIDDpzE81m2q797ordA",
+      "info": "Seed track for recommendations"
+    }
+  },
+  "playlists": [
+    {
+      "id": "37i9dQZF1DXcBWIGoYBM5M",
+      "name": "Today's Top Hits",
+      "tracks": {
+        "total": 50
+      }
+    },
+    {
+      "id": "37i9dQZF1DX0XUsuxWHRQd",
+      "name": "RapCaviar",
+      "tracks": {
+        "total": 55
+      }
+    },
+    {
+      "id": "37i9dQZF1DX10zKzsJ2jva",
+      "name": "Viva Latino",
+      "tracks": {
+        "total": 45
+      }
+    },
+    {
+      "id": "37i9dQZF1DX4JAvHpjipBk",
+      "name": "New Music Friday",
+      "tracks": {
+        "total": 100
+      }
+    }
+  ]
+}

@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { addToRecentlyPlayed } from '@/utils/recentlyPlayed';
 
 const api = axios.create({
   baseURL: 'https://spotify23.p.rapidapi.com',
@@ -8,6 +9,9 @@ const api = axios.create({
     'Content-Type': 'application/json',
   }
 });
+
+
+
 
 // Function to get user's recently played tracks
 export const getRecentlyPlayed = async () => {
@@ -27,17 +31,69 @@ export const getRecentlyPlayed = async () => {
   }
 };
 
-// Function to get top artists
-export const getTopArtists = async () => {
+
+export const getFeaturedPlaylists = async (limit: number = 3) => {
   try {
-    const response = await api.get('/artist_overview/', {
+    const playlistIds = [
+      '37i9dQZF1DXcBWIGoYBM5M',  // Today's Top Hits
+      '37i9dQZF1DX0XUsuxWHRQd',  // RapCaviar
+      '37i9dQZF1DX10zKzsJ2jva'   // Viva Latino
+    ];
+
+    const response = await api.get('/playlist_tracks', {
       params: {
-        id: '06HL4z0CvFAxyc27GXpf02'
+        id: playlistIds[0],
+        offset: 0,
+        limit: 100
       }
     });
-    // Ensure we return an object with an artists array
+
+    // Transform to match dashboard's expected structure
     return {
-      artists: response.data.artists || []
+      playlists: [{
+        id: playlistIds[0],
+        name: 'Featured Playlist',
+        tracks: {
+          total: Array.isArray(response.data) ? response.data.length : 0
+        }
+      }]
+    };
+  } 
+  catch (error) {
+    console.error('Error fetching playlists:', error);
+    return { playlists: [] };  // Return empty array matching expected structure
+  }
+};
+
+// Function to get top artists
+// Function to get user's top artists
+export const getTopArtists = async (limit: number = 5) => {
+  try {
+    // Get multiple artists instead of just one
+    const response = await api.get('/artists/', {
+      params: {
+        // Use an array of artist IDs for variety
+        ids: [
+          '06HL4z0CvFAxyc27GXpf02', // Taylor Swift
+          '1uNFoZAHBGtllmzznpCI3s', // Justin Bieber
+          '3TVXtAsR1Inumwj472S9r4', // Drake
+          '6eUKZXaKkcviH0Ku9w2n3V', // Ed Sheeran
+          '0Y5tJX1MQlPlqiwlOH1tJY'  // Travis Scott
+        ].join(','),
+        limit: limit
+      }
+    });
+
+    // Transform and validate the response
+    const artists = response.data.artists || [];
+    return {
+      artists: artists.map((artist: any) => ({
+        id: artist?.id || 'unknown',
+        name: artist?.name || 'Unknown Artist',
+        followers: { total: artist?.followers?.total || 0 },
+        images: artist?.images || [],
+        genres: artist?.genres || []
+      }))
     };
   } catch (error) {
     console.error('Error fetching top artists:', error);
@@ -82,4 +138,11 @@ export const getRecommendedTracks = async (limit: number = 5) => {
     return { tracks: [] };
   }
 };
+
+
+
+
+
+
+
 
